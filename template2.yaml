@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create an S3 bucket with a specific IAM user, role, and policy.
+
+Parameters:
+  BucketName:
+    Description: "Name for the S3 bucket"
+    Type: String
+
+  UserName:
+    Description: "Name for the IAM user"
+    Type: String
+
+  RoleName:
+    Description: "Name for the IAM role"
+    Type: String
+
+Resources:
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      OwnershipControls:
+        Rules:
+        - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      AccessControl: PublicRead
+
+
+  MyIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+
+  MyIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt MyIAMUser.Arn
+            Action: sts:AssumeRole
+
+  MyIAMRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: S3BucketAccessPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:*
+            Resource:
+              - !Sub 'arn:aws:s3:::${MyS3Bucket}/*'
+      Roles:
+        - !Ref MyIAMRole
+
+Outputs:
+  BucketName:
+    Description: "The name of the S3 bucket"
+    Value: !Ref MyS3Bucket
+
+  UserName:
+    Description: "The name of the IAM user"
+    Value: !Ref MyIAMUser
+
+  RoleName:
+    Description: "The name of the IAM role"
+    Value: !Ref MyIAMRole
